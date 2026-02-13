@@ -1,0 +1,343 @@
+================================================================================
+                    MODULE 06 - CONCEPTS NOTES
+================================================================================
+
+================================================================================
+CONCEPT 1: C++ TYPE CASTING (C vs C++)
+================================================================================
+
+In C:
+  - Cast syntax: (int)value
+  - The compiler allows ANY cast, even nonsensical ones (pointer → int)
+  - Only gives warnings, never errors
+  - The programmer is 100% responsible for checking if the cast is safe
+  - No protection against bugs from wrong casts
+
+In C++:
+  - Cast syntax: static_cast<int>(value)
+  - The compiler CHECKS if the types are related at compile time
+  - Refuses unrelated type conversions with a compile ERROR
+  - The programmer shares responsibility with the compiler
+
+  C++ has 4 cast operators:
+    static_cast<>       → convert between related types (the one we use here)
+    dynamic_cast<>      → convert between polymorphic classes (runtime check)
+    reinterpret_cast<>  → raw memory reinterpretation (dangerous, low-level)
+    const_cast<>        → add or remove const qualifier
+
+  For this exercise: static_cast is the main tool.
+
+  IMPORTANT: static_cast checks TYPE compatibility (compile time)
+             but does NOT check VALUE overflow (runtime)
+             → YOU must check if the value fits before casting
+
+  Example:
+    double d = 99999999999.0;
+    static_cast<int>(d);   // compiles fine, but overflows at runtime!
+    → You must check: if (d > INT_MAX || d < INT_MIN) → "impossible"
+
+================================================================================
+CONCEPT 2: THE FOUR SCALAR TYPES
+================================================================================
+
+"Scalar" = a type that holds a single value (not array, not object)
+
++----------+--------+--------+-------------------------------+------------------+
+|   Type   |  Size  |  Bits  |           Range               |    Precision     |
++----------+--------+--------+-------------------------------+------------------+
+|   char   | 1 byte |   8    | -128 to 127                   |   exact (int)    |
+|   int    | 4 bytes|  32    | -2,147,483,648 to             |   exact          |
+|          |        |        |  2,147,483,647                 |                  |
+|   float  | 4 bytes|  32    | ±3.4 × 10^38                  |  ~7 digits       |
+|   double | 8 bytes|  64    | ±1.7 × 10^308                 |  ~15 digits      |
++----------+--------+--------+-------------------------------+------------------+
+
+KEY POINTS:
+
+  char:
+    - It's a tiny integer, not really a "letter"
+    - We interpret it as a character using ASCII table
+    - Displayable range: 32 (space) to 126 (~)
+    - 0-31 and 127 = non-displayable characters
+
+  int:
+    - Whole numbers only, no decimals
+    - Casting from double/float TRUNCATES (chops), does NOT round
+      static_cast<int>(42.9) → 42 (not 43)
+
+  float:
+    - Decimal numbers with ~7 digits of precision
+    - Suffix 'f' marks a float literal: 42.0f
+    - Can hold special values: nanf, +inff, -inff
+
+  double:
+    - Decimal numbers with ~15 digits of precision
+    - No suffix needed: 42.0
+    - Can hold special values: nan, +inf, -inf
+
+CONVERSION SAFETY:
+
+  Widening (safe, no data loss):
+    char → int → double
+    (small → big = safe)
+
+  Narrowing (dangerous, possible data loss):
+    double → int → char
+    (big → small = might lose data)
+
+  What each type CANNOT hold:
+    char   → values outside -128..127, nan, inf, decimals
+    int    → decimals, values outside ±2.1 billion, nan, inf
+    float  → precision beyond 7 digits
+    double → precision beyond 15 digits
+
+================================================================================
+CONCEPT 3: IEEE 754 — SPECIAL VALUES (nan, inf)
+================================================================================
+
+IEEE 754 = the standard that defines how float/double store numbers in memory.
+
+HOW FLOATS ARE STORED (scientific notation in binary):
+
+  float  (32 bits): [1 bit sign] [8 bits exponent]  [23 bits mantissa]
+  double (64 bits): [1 bit sign] [11 bits exponent] [52 bits mantissa]
+
+  sign     = positive or negative
+  exponent = how big the number is (the power)
+  mantissa = the actual significant digits
+
+  More mantissa bits = more precision (float ~7 digits, double ~15 digits)
+
+WHY SPECIAL VALUES EXIST:
+
+  Some calculations produce results that can't be a normal number:
+    1.0 / 0.0          → +inf   (too big to represent)
+    -1.0 / 0.0         → -inf
+    0.0 / 0.0          → nan    (mathematically undefined)
+    sqrt(-1.0)          → nan    (no real result)
+
+  IEEE 754 reserved special bit patterns to represent these cases.
+  They are FLAGS that say "something went wrong" or "beyond representation."
+
+THE SPECIAL VALUES:
+
+  +inf / -inf (infinity):
+    - Means the value is too large to store
+    - Only exists in float and double
+    - Check with: std::isinf(value)
+
+  nan (not a number):
+    - Means the result has no mathematical meaning
+    - Only exists in float and double
+    - Unique property: nan != nan (only value where x != x is true)
+    - Check with: std::isnan(value)
+
+  Float vs Double literals:
+    Float:   nanf    +inff    -inff
+    Double:  nan     +inf     -inf
+
+WHY THIS MATTERS FOR THE EXERCISE:
+
+  char and int are simple integer types → no IEEE 754 → no nan/inf concept
+
+  +-------+--------+--------+---------+----------+
+  | Value | char   |  int   |  float  |  double  |
+  +-------+--------+--------+---------+----------+
+  | nan   | imposs | imposs |  nanf   |   nan    |
+  | +inf  | imposs | imposs |  +inff  |   +inf   |
+  | -inf  | imposs | imposs |  -inff  |   -inf   |
+  +-------+--------+--------+---------+----------+
+
+  Detection tools:
+    #include <cmath>
+    std::isnan(value)   // true if nan
+    std::isinf(value)   // true if inf or -inf
+
+================================================================================
+CONCEPT 4: OVERFLOW & IMPOSSIBLE CONVERSIONS
+================================================================================
+
+THE PROBLEM:
+
+  static_cast alone is NOT enough for full safety:
+    - static_cast checks TYPE compatibility at COMPILE TIME
+    - But it does NOT check if the VALUE fits at RUNTIME
+    - We need RUNTIME checks to complete the safety
+
+  Two halves of safe casting:
+    1. static_cast       → compiler checks types are related (compile time)
+    2. limits + cmath    → WE check values fit (runtime)
+
+THE TOOLS:
+
+  #include <limits>     → std::numeric_limits<type>::max(), min()
+  #include <cmath>      → std::isnan(), std::isinf()
+
+  std::numeric_limits<char>::min()     // -128
+  std::numeric_limits<char>::max()     // 127
+  std::numeric_limits<int>::min()      // -2147483648
+  std::numeric_limits<int>::max()      // 2147483647
+
+THE 3 CHECKS BEFORE CASTING:
+
+  Check 1: Special values (nan, inf)
+    - nan and inf only exist in float/double
+    - If value is nan or inf → char and int are "impossible"
+    - Tool: std::isnan(value), std::isinf(value)
+
+  Check 2: Overflow (value outside target type's range)
+    - Value too big or too small for the target type
+    - Example: 99999999999.0 → int? NO, exceeds INT_MAX
+    - Example: 300 → char? NO, exceeds 127
+    - Tool: std::numeric_limits<type>::max() / min()
+
+  Check 3: Displayable (char only)
+    - Value fits in char, but is it printable?
+    - Displayable: 32 (space) to 126 (~)
+    - 0-31 and 127 = "Non displayable" (not "impossible"!)
+    - This is NOT the same as impossible — the value fits, just can't print it
+
+THE DECISION TREE:
+
+  Converting to CHAR:
+    Is it nan or inf?           → "impossible"
+    Is it outside -128..127?    → "impossible"
+    Is it 0-31 or 127?         → "Non displayable"
+    Otherwise                   → print the character: '*'
+
+  Converting to INT:
+    Is it nan or inf?           → "impossible"
+    Is it outside INT_MIN..MAX? → "impossible"
+    Otherwise                   → print the integer: 42
+
+  Converting to FLOAT:
+    Always works                → print: 42.0f
+    (nan/inf are valid in float, just print nanf/+inff/-inff)
+
+  Converting to DOUBLE:
+    Always works                → print: 42.0
+    (nan/inf are valid in double, just print nan/+inf/-inf)
+
+THE PATTERN:
+
+  if (std::isnan(value) || std::isinf(value))
+      → char: impossible, int: impossible
+  else if (value > max || value < min)
+      → impossible (overflow)
+  else
+      → static_cast and print
+
+================================================================================
+CONCEPT 5: TYPE DETECTION FROM STRING (parsing the input)
+================================================================================
+
+THE PROBLEM:
+
+  Input is a std::string like "42.0f". It's just text.
+  Before converting, you must figure out: WHAT TYPE IS THIS?
+
+DETECTION ORDER (most specific → least specific):
+
+  Step 1: Pseudo-literals (exact string match)
+    "nanf", "+inff", "-inff"           → FLOAT
+    "nan",  "+inf",  "-inf"            → DOUBLE
+
+  Step 2: Char literal
+    Length == 3, starts and ends with single quote: 'a'  → CHAR (value = str[1])
+    Length == 1, not a digit: a                          → CHAR (value = str[0])
+
+  Step 3: Float
+    Has a dot AND ends with 'f'
+    Rest is digits (optional sign at start)
+    "42.0f", "-4.2f", "0.0f"          → FLOAT
+    Convert with: std::stof(str)
+
+  Step 4: Double
+    Has a dot, does NOT end with 'f'
+    Rest is digits (optional sign at start)
+    "42.0", "-4.2", "0.0"             → DOUBLE
+    Convert with: std::stod(str)
+
+  Step 5: Int
+    No dot, no 'f', digits only (optional sign at start)
+    "42", "-42", "0"                   → INT
+    Convert with: std::stoi(str)
+
+  Step 6: Nothing matched
+    → INVALID INPUT
+
+CONVERSION FUNCTIONS:
+
+  std::stoi(str)   → string to int     (can throw if invalid/overflow)
+  std::stof(str)   → string to float   (can throw if invalid/overflow)
+  std::stod(str)   → string to double  (can throw if invalid/overflow)
+
+  Exceptions to handle:
+    std::invalid_argument  → string is not a valid number
+    std::out_of_range      → number too large for the type
+
+FULL FLOW EXAMPLE:
+
+  Input: "42.0f"
+    Step 1: pseudo-literal? No
+    Step 2: char?           No
+    Step 3: float?          Yes (has dot, ends with 'f')
+    → std::stof("42.0") = 42.0f
+    → cast to char:   static_cast<char>(42.0f)   = '*'
+    → cast to int:    static_cast<int>(42.0f)    = 42
+    → float:          42.0f                       = 42.0f
+    → cast to double: static_cast<double>(42.0f) = 42.0
+
+  Input: "nan"
+    Step 1: pseudo-literal? Yes → DOUBLE
+    → char:   impossible (no nan in char)
+    → int:    impossible (no nan in int)
+    → float:  nanf
+    → double: nan
+
+  Input: "a"
+    Step 1: pseudo-literal? No
+    Step 2: char?           Yes (length 1, not a digit)
+    → char:   'a'
+    → int:    97 (ASCII value)
+    → float:  97.0f
+    → double: 97.0
+
+================================================================================
+CONCEPT 6: NON-INSTANTIABLE CLASS (static-only design)
+================================================================================
+
+WHAT THE EXERCISE REQUIRES:
+
+  ScalarConverter must NOT be instantiable:
+    ScalarConverter s;                  // must NOT compile
+    ScalarConverter::convert("42");     // ONLY way to use it
+
+HOW TO DO IT:
+
+  Make all constructors private (or deleted):
+    class ScalarConverter {
+    private:
+        ScalarConverter();
+        ScalarConverter(const ScalarConverter &src);
+        ScalarConverter &operator=(const ScalarConverter &rhs);
+        ~ScalarConverter();
+    public:
+        static void convert(const std::string &literal);
+    };
+
+  "static" = belongs to the CLASS, not to any object
+  → no object needed, call directly: ScalarConverter::convert("42")
+
+ABSTRACT CLASS vs UTILITY CLASS:
+
+  Abstract class (= 0):
+    - Purpose: blueprint for children to inherit
+    - Has children, used via pointers (Animal *ptr = &dog)
+    - Prevents instantiation via pure virtual function
+
+  Utility class (private constructor):
+    - Purpose: namespace for static functions
+    - No children, no inheritance, no objects
+    - Prevents instantiation via private/deleted constructor
+    - Just organization and design pattern
