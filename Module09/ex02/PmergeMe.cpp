@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/04 23:34:53 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/05 00:30:29 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,5 +67,5 @@ void PmergeMe::display_arr(std::string const& label) const
 
 void PmergeMe::sort()
 {
-    
+    buildPairs();
 }
