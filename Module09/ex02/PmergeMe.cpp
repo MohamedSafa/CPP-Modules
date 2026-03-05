@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/05 16:30:11 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/05 23:46:47 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,6 +120,39 @@ void PmergeMe::mergePairs(std::vector<std::pair<int,int> >& vector)
         vector[k++] = right[j++];
 }
 
+void PmergeMe::buildMainChain()
+{
+    _mainChain.push_back(_pairs[0].second);
+    for(size_t i = 0; i < _pairs.size(); i++)
+        _mainChain.push_back(_pairs[i].first);
+    std::cout << "main chain:" << std::endl;
+    for(size_t i = 0; i < _mainChain.size(); i++)
+        std::cout << _mainChain[i] << " ";
+    std::cout << std::endl;
+}
+
+void PmergeMe::identifyPend()
+{
+    for(size_t i = 1; i < _pairs.size(); i++)
+        _pend.push_back(_pairs[i].second);
+    if(_hasStraggler)
+        _pend.push_back(_straggler);
+    std::cout << "Pend:" << std::endl;
+    for(size_t i = 0; i < _pend.size(); i++)
+        std::cout << _pend[i] << " ";
+    std::cout << std::endl;
+}
+
+void PmergeMe::generateJacobSthal()
+{
+    size_t i = 0;
+    while(i < _pend.size())
+    {
+        
+        i++;
+    }
+}
+
 void PmergeMe::sort()
 {
     buildPairs();
@@ -127,4 +160,7 @@ void PmergeMe::sort()
     std::cout << "Pairs after merge sort:" << std::endl;
     for(size_t i = 0; i < _pairs.size(); i++)
         std::cout << _pairs[i].first << " " << _pairs[i].second << std::endl;
+    buildMainChain();
+    identifyPend();
+    generateJacobSthal();
 }
