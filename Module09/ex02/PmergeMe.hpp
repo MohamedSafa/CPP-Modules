@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:11 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/05 00:30:26 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/05 15:16:23 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ class PmergeMe
         int _straggler;
         bool _hasStraggler;
         void buildPairs();
+        void mergePairs(std::vector<std::pair<int,int> >& vector);
     public:
         PmergeMe();
         ~PmergeMe();
