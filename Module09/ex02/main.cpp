@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:16 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/04 23:10:19 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/05 02:42:59 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ int main(int argc,char *argv[])
     {
         test.parse_and_validate(argc,argv);
         test.display_arr("Before:");
+        test.sort();
     }
     catch(const std::exception& e)
     {
