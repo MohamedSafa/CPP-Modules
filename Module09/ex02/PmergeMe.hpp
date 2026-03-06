@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:11 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/05 23:49:31 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/06 15:53:28 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ class PmergeMe
         std::vector<int> _mainChain;
         std::vector<int> _pend;
         std::vector<size_t> _jacobsthal;
+        std::vector<size_t> _insertionOrder;
         int _straggler;
         bool _hasStraggler;
         void buildPairs();
@@ -33,6 +34,7 @@ class PmergeMe
         void buildMainChain();
         void identifyPend();
         void generateJacobSthal();
+        void defineGroups();
     public:
         PmergeMe();
         ~PmergeMe();

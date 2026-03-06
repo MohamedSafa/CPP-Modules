@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/06 04:04:53 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/06 16:47:39 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -158,6 +158,38 @@ void PmergeMe::generateJacobSthal()
     std::cout << std::endl;
 }
 
+void PmergeMe::defineGroups()
+{
+    if(_pend.empty())
+        return;
+    for(size_t j = 0; j < _jacobsthal.size(); j++)
+    {
+        if(j == 0)
+            _insertionOrder.push_back(0);
+        else
+        {
+            size_t end = std::min(_jacobsthal[j],_pend.size());
+            size_t start =  _jacobsthal[j - 1] + 1;
+            if(end == start && end >= _pend.size())
+            {
+                _insertionOrder.push_back(end - 1);
+                break;
+            }
+            else
+            {
+                for(size_t i = end; i >= start; i--)
+                    _insertionOrder.push_back(i - 1);
+                if(end >= _pend.size())
+                    break;
+            }   
+        }
+    }
+    std::cout << "Insertion Order:" << std::endl;
+    for(size_t i = 0; i < _insertionOrder.size(); i++)
+        std::cout << _insertionOrder[i] << " ";
+    std::cout << std::endl;
+}
+
 void PmergeMe::sort()
 {
     buildPairs();
@@ -168,4 +200,5 @@ void PmergeMe::sort()
     buildMainChain();
     identifyPend();
     generateJacobSthal();
+    defineGroups();
 }
