@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/05 23:46:47 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/06 04:04:53 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -145,12 +145,17 @@ void PmergeMe::identifyPend()
 
 void PmergeMe::generateJacobSthal()
 {
-    size_t i = 0;
-    while(i < _pend.size())
+    _jacobsthal.push_back(1);
+    _jacobsthal.push_back(3);
+    while(_jacobsthal.back() < _pend.size())
     {
-        
-        i++;
+        size_t i = _jacobsthal.size();
+       _jacobsthal.push_back(_jacobsthal[i - 1] + 2 * _jacobsthal[i - 2]);
     }
+    std::cout << "Jacobsthal:" << std::endl;
+    for(size_t i = 0; i < _jacobsthal.size(); i++)
+        std::cout << _jacobsthal[i] << " ";
+    std::cout << std::endl;
 }
 
 void PmergeMe::sort()
