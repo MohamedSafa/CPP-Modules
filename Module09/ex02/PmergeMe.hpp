@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:11 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/06 15:53:28 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/06 21:37:57 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,7 @@ class PmergeMe
         void identifyPend();
         void generateJacobSthal();
         void defineGroups();
+        void insertPend();
     public:
         PmergeMe();
         ~PmergeMe();
@@ -42,6 +43,7 @@ class PmergeMe
         PmergeMe& operator=(const PmergeMe& rhs);
         void parse_and_validate(int argc, char *argv[]);
         void display_arr(std::string const& label) const;
+        void display_sorted(std::string const& label) const;
         class InvalidInput : public std::exception
         {
             public:
