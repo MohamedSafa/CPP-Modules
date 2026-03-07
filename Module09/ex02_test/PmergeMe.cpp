@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/07 15:47:06 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/06 23:15:46 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
 #include <algorithm> // for std::lower_bound
 
 PmergeMe::PmergeMe()
-    :_straggler(0),_hasStraggler(false)
+    :_straggler(0),_hasStraggler(false),_compCount(0)
 {}
 
 PmergeMe::~PmergeMe()
@@ -97,6 +97,7 @@ void PmergeMe::buildPairs()
     {
         int winner = _arr[i];
         int looser = _arr[i + 1];
+        _compCount++;
         if(winner > looser)
             _pairs.push_back(std::make_pair(winner,looser));
         else
@@ -126,6 +127,7 @@ void PmergeMe::mergePairs(std::vector<std::pair<int,int> >& vector)
     size_t i = 0, j = 0, k = 0;
     while(i < left.size() && j < right.size())
     {
+        _compCount++;
         if(left[i].first <= right[j].first)
             vector[k++] = left[i++];
         else
@@ -135,6 +137,117 @@ void PmergeMe::mergePairs(std::vector<std::pair<int,int> >& vector)
         vector[k++] = left[i++];
     while(j < right.size())
         vector[k++] = right[j++];
+}
+
+std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int> data)
+{
+    if(data.empty()) return std::vector<int>();
+    if(data.size() == 1) return data;
+    if(data.size() == 2)
+    {
+        _compCount++;
+        if(data[0] > data[1]) std::swap(data[0], data[1]);
+        return data;
+    }
+    std::vector<int> main_v, pend_v;
+    bool isodd = (data.size() % 2 == 1);
+    for(size_t i = 0; i + 1 < data.size(); i += 2)
+    {
+        _compCount++;
+        if(data[i] > data[i + 1])
+        {
+            main_v.push_back(data[i]);
+            pend_v.push_back(data[i + 1]);
+        }
+        else
+        {
+            main_v.push_back(data[i + 1]);
+            pend_v.push_back(data[i]);
+        }
+    }
+    if(isodd)
+        pend_v.push_back(data.back());
+    std::vector<int> new_main = fordJohnsonLoop(main_v);
+    std::vector<int> new_pend(new_main.size());
+    for(size_t i = 0; i < new_main.size(); i++)
+    {
+        for(size_t j = 0; j < main_v.size(); j++)
+        {
+            if(main_v[j] == new_main[i])
+            {
+                new_pend[i] = pend_v[j];
+                break;
+            }
+        }
+    }
+    if(isodd)
+        new_pend.push_back(pend_v.back());
+    insertSortHelper(new_main, new_pend, isodd);
+    return new_main;
+}
+
+void PmergeMe::insertSortHelper(std::vector<int>& chain, std::vector<int>& pend, bool hasStraggler)
+{
+    if(pend.empty()) return;
+    std::vector<int> winners(chain.begin(), chain.end());
+    std::vector<size_t> jacob;
+    jacob.push_back(1);
+    jacob.push_back(3);
+    while(jacob.back() < pend.size())
+    {
+        size_t i = jacob.size();
+        jacob.push_back(jacob[i - 1] + 2 * jacob[i - 2]);
+    }
+    std::vector<size_t> order;
+    order.push_back(0);
+    for(size_t j = 1; j < jacob.size(); j++)
+    {
+        size_t end = std::min(jacob[j], pend.size());
+        size_t start = jacob[j - 1] + 1;
+        if(end == start && end >= pend.size())
+        {
+            order.push_back(end - 1);
+            break;
+        }
+        else
+        {
+            for(size_t i = end; i >= start; i--)
+                order.push_back(i - 1);
+            if(end >= pend.size())
+                break;
+        }
+    }
+    for(size_t i = 0; i < order.size(); i++)
+    {
+        size_t idx = order[i];
+        if(hasStraggler && idx == pend.size() - 1)
+        {
+            std::vector<int>::iterator lo = chain.begin();
+            std::vector<int>::iterator hi = chain.end();
+            while(lo < hi)
+            {
+                _compCount++;
+                std::vector<int>::iterator mid = lo + (hi - lo) / 2;
+                if(*mid < pend[idx]) lo = mid + 1;
+                else hi = mid;
+            }
+            chain.insert(lo, pend[idx]);
+        }
+        else
+        {
+            std::vector<int>::iterator bound = std::find(chain.begin(), chain.end(), winners[idx]);
+            std::vector<int>::iterator lo = chain.begin();
+            std::vector<int>::iterator hi = bound;
+            while(lo < hi)
+            {
+                _compCount++;
+                std::vector<int>::iterator mid = lo + (hi - lo) / 2;
+                if(*mid < pend[idx]) lo = mid + 1;
+                else hi = mid;
+            }
+            chain.insert(lo, pend[idx]);
+        }
+    }
 }
 
 void PmergeMe::buildMainChain()
@@ -214,16 +327,34 @@ void PmergeMe::insertPend()
         size_t idx = _insertionOrder[i];
         if(_hasStraggler && idx == _pend.size() - 1)
         {
-            std::vector<int>::iterator pos = std::lower_bound(_mainChain.begin(),_mainChain.end(),_pend[idx]);
-            _mainChain.insert(pos,_pend[idx]);
+            std::vector<int>::iterator lo = _mainChain.begin();
+            std::vector<int>::iterator hi = _mainChain.end();
+            while(lo < hi)
+            {
+                _compCount++;
+                std::vector<int>::iterator mid = lo + (hi - lo) / 2;
+                if(*mid < _pend[idx])
+                    lo = mid + 1;
+                else
+                    hi = mid;
+            }
+            _mainChain.insert(lo, _pend[idx]);
             continue;
         }
         int pairedWinner = _pairs[idx + 1].first;
-        std::cout << "Insertion index: " << _insertionOrder[i] << std::endl;
-        std::cout << "Paired Winner: " << pairedWinner << std::endl;
-        std::vector<int>::iterator bound = std::lower_bound(_mainChain.begin(),_mainChain.end(),pairedWinner);
-        std::vector<int>::iterator pos = std::lower_bound(_mainChain.begin(),bound,_pend[idx]);
-        _mainChain.insert(pos,_pend[idx]);
+        std::vector<int>::iterator bound = std::find(_mainChain.begin(), _mainChain.end(), pairedWinner);
+        std::vector<int>::iterator lo = _mainChain.begin();
+        std::vector<int>::iterator hi = bound;
+        while(lo < hi)
+        {
+            _compCount++;
+            std::vector<int>::iterator mid = lo + (hi - lo) / 2;
+            if(*mid < _pend[idx])
+                lo = mid + 1;
+            else
+                hi = mid;
+        }
+        _mainChain.insert(lo, _pend[idx]);
     }
 }
 
@@ -232,8 +363,24 @@ void PmergeMe::sort()
     if(_arr.size() == 1)
         return;
     buildPairs();
-    mergePairs(_pairs);
-    std::cout << "Pairs after merge sort:" << std::endl;
+    std::vector<int> winners;
+    for(size_t i = 0; i < _pairs.size(); i++)
+        winners.push_back(_pairs[i].first);
+    winners = fordJohnsonLoop(winners);
+    std::vector<std::pair<int,int> > sorted_pairs;
+    for(size_t i = 0; i < winners.size(); i++)
+    {
+        for(size_t j = 0; j < _pairs.size(); j++)
+        {
+            if(_pairs[j].first == winners[i])
+            {
+                sorted_pairs.push_back(_pairs[j]);
+                break;
+            }
+        }
+    }
+    _pairs = sorted_pairs;
+    std::cout << "Pairs after ford johnson:" << std::endl;
     for(size_t i = 0; i < _pairs.size(); i++)
         std::cout << _pairs[i].first << " " << _pairs[i].second << std::endl;
     buildMainChain();
@@ -241,4 +388,5 @@ void PmergeMe::sort()
     generateJacobSthal();
     defineGroups();
     insertPend();
+    std::cout << "Total comparisons: " << _compCount << std::endl;
 }
