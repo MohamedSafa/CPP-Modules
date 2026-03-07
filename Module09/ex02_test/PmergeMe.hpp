@@ -34,6 +34,8 @@ class PmergeMe
         void mergePairs(std::vector<std::pair<int,int> >& vector);
         std::vector<int> fordJohnsonLoop(std::vector<int> data);
         void insertSortHelper(std::vector<int>& chain, std::vector<int>& pend, bool hasStraggler);
+        int binarySearch(std::vector<int>& chain, int val, int high);
+        int jacobsthalNumber(int n);
         void buildMainChain();
         void identifyPend();
         void generateJacobSthal();

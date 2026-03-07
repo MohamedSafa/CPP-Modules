@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/07 15:47:06 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/06 23:02:12 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,24 +70,8 @@ void PmergeMe::parse_and_validate(int argc, char *argv[])
 void PmergeMe::display_arr(std::string const& label) const
 {
     std::cout << label;
-    for(size_t i = 0; i < _arr.size(); i++)
-        std::cout << " " << _arr[i];
-    std::cout << std::endl;
-}
-
-void PmergeMe::display_sorted(std::string const& label) const
-{
-    std::cout << label;
-    if(_mainChain.empty())
-    {
-        for(size_t i = 0; i < _arr.size(); i++)
-            std::cout << " " << _arr[i];
-    }
-    else
-    {
-        for(size_t i = 0; i < _mainChain.size(); i++)
-            std::cout << " " << _mainChain[i];
-    }
+    for(size_t i = 0; i < this->_arr.size(); i++)
+        std::cout << " " << this->_arr[i];
     std::cout << std::endl;
 }
 
@@ -212,11 +196,11 @@ void PmergeMe::insertPend()
     for(size_t i = 0; i < _insertionOrder.size();i++)
     {
         size_t idx = _insertionOrder[i];
-        if(_hasStraggler && idx == _pend.size() - 1)
+        if((idx == _pend.size() - 1 ) && _hasStraggler)
         {
             std::vector<int>::iterator pos = std::lower_bound(_mainChain.begin(),_mainChain.end(),_pend[idx]);
             _mainChain.insert(pos,_pend[idx]);
-            continue;
+            break;
         }
         int pairedWinner = _pairs[idx + 1].first;
         std::cout << "Insertion index: " << _insertionOrder[i] << std::endl;
@@ -225,12 +209,14 @@ void PmergeMe::insertPend()
         std::vector<int>::iterator pos = std::lower_bound(_mainChain.begin(),bound,_pend[idx]);
         _mainChain.insert(pos,_pend[idx]);
     }
+    std::cout << "main chain:" << std::endl;
+    for(size_t i = 0; i < _mainChain.size(); i++)
+       std::cout << _mainChain[i] << " ";
+    std::cout << std::endl;
 }
 
 void PmergeMe::sort()
 {
-    if(_arr.size() == 1)
-        return;
     buildPairs();
     mergePairs(_pairs);
     std::cout << "Pairs after merge sort:" << std::endl;

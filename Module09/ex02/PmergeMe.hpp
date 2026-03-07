@@ -43,7 +43,6 @@ class PmergeMe
         PmergeMe& operator=(const PmergeMe& rhs);
         void parse_and_validate(int argc, char *argv[]);
         void display_arr(std::string const& label) const;
-        void display_sorted(std::string const& label) const;
         class InvalidInput : public std::exception
         {
             public:

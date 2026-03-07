@@ -186,73 +186,101 @@ std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int> data)
     return new_main;
 }
 
+int PmergeMe::binarySearch(std::vector<int>& chain, int val, int high)
+{
+    int lo = 0;
+    if(high >= (int)chain.size())
+        high = (int)chain.size() - 1;
+    while(lo <= high)
+    {
+        int mid = lo + (high - lo) / 2;
+        _compCount++;
+        if(chain[mid] == val)
+            return mid;
+        else if(chain[mid] > val)
+            high = mid - 1;
+        else
+            lo = mid + 1;
+    }
+    if(lo < (int)chain.size() && val < chain[lo])
+        return lo;
+    return (int)chain.size();
+}
+
 void PmergeMe::insertSortHelper(std::vector<int>& chain, std::vector<int>& pend, bool hasStraggler)
 {
     if(pend.empty()) return;
-    std::vector<int> winners(chain.begin(), chain.end());
-    std::vector<size_t> jacob;
-    jacob.push_back(1);
-    jacob.push_back(3);
-    while(jacob.back() < pend.size())
+    // generate Jacobsthal sequence for pend indices (1-based)
+    std::vector<int> jacob;
+    int idx = 3;
+    size_t pendSize = pend.size();
+    // generate jacobsthal numbers that fit in pend
+    while(true)
     {
-        size_t i = jacob.size();
-        jacob.push_back(jacob[i - 1] + 2 * jacob[i - 2]);
+        int jn = jacobsthalNumber(idx);
+        if((size_t)jn > pendSize) break;
+        jacob.push_back(jn);
+        idx++;
     }
-    std::vector<size_t> order;
-    order.push_back(0);
-    for(size_t j = 1; j < jacob.size(); j++)
+    // build insertion order using their edit() logic: high-to-low per group
+    std::vector<int> order;
+    std::vector<int> pushed;
+    for(size_t i = 0; i < jacob.size(); i++)
     {
-        size_t end = std::min(jacob[j], pend.size());
-        size_t start = jacob[j - 1] + 1;
-        if(end == start && end >= pend.size())
+        int x = jacob[i];
+        while(x > 1)
         {
-            order.push_back(end - 1);
-            break;
-        }
-        else
-        {
-            for(size_t i = end; i >= start; i--)
-                order.push_back(i - 1);
-            if(end >= pend.size())
-                break;
+            bool found = false;
+            for(size_t k = 0; k < pushed.size(); k++)
+                if(pushed[k] == x) { found = true; break; }
+            if(!found) { order.push_back(x); pushed.push_back(x); }
+            else break;
+            x--;
         }
     }
+    // fill remaining indices not yet in order
+    int x = (int)pendSize;
+    while((int)order.size() < (int)pendSize)
+    {
+        bool found = false;
+        for(size_t k = 0; k < pushed.size(); k++)
+            if(pushed[k] == x) { found = true; break; }
+        if(!found) { order.push_back(x); pushed.push_back(x); }
+        x--;
+    }
+    // insert b1 = pend[0] at front with 0 comparisons
+    chain.insert(chain.begin(), pend[0]);
+    // insert remaining pend elements using Jacobsthal-bounded binary search
+    int high = 3;
     for(size_t i = 0; i < order.size(); i++)
     {
-        size_t idx = order[i];
-        if(hasStraggler && idx == pend.size() - 1)
-        {
-            std::vector<int>::iterator lo = chain.begin();
-            std::vector<int>::iterator hi = chain.end();
-            while(lo < hi)
-            {
-                _compCount++;
-                std::vector<int>::iterator mid = lo + (hi - lo) / 2;
-                if(*mid < pend[idx]) lo = mid + 1;
-                else hi = mid;
-            }
-            chain.insert(lo, pend[idx]);
-        }
-        else
-        {
-            std::vector<int>::iterator bound = std::find(chain.begin(), chain.end(), winners[idx]);
-            std::vector<int>::iterator lo = chain.begin();
-            std::vector<int>::iterator hi = bound;
-            while(lo < hi)
-            {
-                _compCount++;
-                std::vector<int>::iterator mid = lo + (hi - lo) / 2;
-                if(*mid < pend[idx]) lo = mid + 1;
-                else hi = mid;
-            }
-            chain.insert(lo, pend[idx]);
-        }
+        if(i > 0 && order[i] > order[i - 1])
+            high = 2 * high + 1;
+        int pendIdx = order[i] - 1; // convert to 0-based
+        if(pendIdx < 0 || (size_t)pendIdx >= pendSize) continue;
+        int val = pend[pendIdx];
+        int pos = binarySearch(chain, val, high - 1);
+        chain.insert(chain.begin() + pos, val);
     }
+    (void)hasStraggler;
+}
+
+int PmergeMe::jacobsthalNumber(int n)
+{
+    if(n == 0) return 0;
+    if(n == 1) return 1;
+    int a = 0, b = 1;
+    for(int i = 2; i <= n; i++)
+    {
+        int tmp = b + 2 * a;
+        a = b;
+        b = tmp;
+    }
+    return b;
 }
 
 void PmergeMe::buildMainChain()
 {
-    _mainChain.push_back(_pairs[0].second);
     for(size_t i = 0; i < _pairs.size(); i++)
         _mainChain.push_back(_pairs[i].first);
     std::cout << "main chain:" << std::endl;
@@ -263,7 +291,7 @@ void PmergeMe::buildMainChain()
 
 void PmergeMe::identifyPend()
 {
-    for(size_t i = 1; i < _pairs.size(); i++)
+    for(size_t i = 0; i < _pairs.size(); i++)
         _pend.push_back(_pairs[i].second);
     if(_hasStraggler)
         _pend.push_back(_straggler);
@@ -341,7 +369,7 @@ void PmergeMe::insertPend()
             _mainChain.insert(lo, _pend[idx]);
             continue;
         }
-        int pairedWinner = _pairs[idx + 1].first;
+        int pairedWinner = _pairs[idx].first;
         std::vector<int>::iterator bound = std::find(_mainChain.begin(), _mainChain.end(), pairedWinner);
         std::vector<int>::iterator lo = _mainChain.begin();
         std::vector<int>::iterator hi = bound;
@@ -380,9 +408,6 @@ void PmergeMe::sort()
         }
     }
     _pairs = sorted_pairs;
-    std::cout << "Pairs after ford johnson:" << std::endl;
-    for(size_t i = 0; i < _pairs.size(); i++)
-        std::cout << _pairs[i].first << " " << _pairs[i].second << std::endl;
     buildMainChain();
     identifyPend();
     generateJacobSthal();
