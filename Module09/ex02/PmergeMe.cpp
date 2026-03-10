@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/06 23:02:12 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/10 01:58:55 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
 #include <algorithm> // for std::lower_bound
 
 PmergeMe::PmergeMe()
-    :_straggler(0),_hasStraggler(false)
+    :_straggler(0),_hasStraggler(false),_compCount(0)
 {}
 
 PmergeMe::~PmergeMe()
@@ -81,6 +81,7 @@ void PmergeMe::buildPairs()
     {
         int winner = _arr[i];
         int looser = _arr[i + 1];
+        _compCount++;
         if(winner > looser)
             _pairs.push_back(std::make_pair(winner,looser));
         else
@@ -91,140 +92,225 @@ void PmergeMe::buildPairs()
         _straggler = _arr.back();
         _hasStraggler = true;
     }
-    std::cout << "Pairs extracted:" << std::endl;
-    for(size_t i = 0; i < _pairs.size(); i++)
-        std::cout << _pairs[i].first << " " << _pairs[i].second << std::endl;
-    if(_hasStraggler)
-        std::cout << "straggler: " << _straggler << std::endl;
 }
 
-void PmergeMe::mergePairs(std::vector<std::pair<int,int> >& vector)
+// void PmergeMe::mergePairs(std::vector<std::pair<int,int> >& vector)
+// {
+//     if(vector.size() <= 1)
+//         return;
+//     size_t mid = vector.size() / 2;
+//     std::vector<std::pair<int, int> > left(vector.begin(), vector.begin() + mid);
+//     std::vector<std::pair<int, int> > right(vector.begin() + mid, vector.end());
+//     mergePairs(left);
+//     mergePairs(right);
+//     size_t i = 0, j = 0, k = 0;
+//     while(i < left.size() && j < right.size())
+//     {
+//         if(left[i].first <= right[j].first)
+//             vector[k++] = left[i++];
+//         else
+//             vector[k++] = right[j++];
+//     }
+//     while(i < left.size())
+//         vector[k++] = left[i++];
+//     while(j < right.size())
+//         vector[k++] = right[j++];
+// }
+
+
+std::vector<size_t> PmergeMe::generateJacobSthal(std::vector<int> pend)
 {
-    if(vector.size() <= 1)
-        return;
-    size_t mid = vector.size() / 2;
-    std::vector<std::pair<int, int> > left(vector.begin(), vector.begin() + mid);
-    std::vector<std::pair<int, int> > right(vector.begin() + mid, vector.end());
-    mergePairs(left);
-    mergePairs(right);
-    size_t i = 0, j = 0, k = 0;
-    while(i < left.size() && j < right.size())
+    std::vector<size_t> jacobSequence;
+    jacobSequence.push_back(1);
+    jacobSequence.push_back(3);
+    while(jacobSequence.back() < pend.size())
     {
-        if(left[i].first <= right[j].first)
-            vector[k++] = left[i++];
-        else
-            vector[k++] = right[j++];
+        size_t i = jacobSequence.size();
+       jacobSequence.push_back(jacobSequence[i - 1] + 2 * jacobSequence[i - 2]);
     }
-    while(i < left.size())
-        vector[k++] = left[i++];
-    while(j < right.size())
-        vector[k++] = right[j++];
+    return jacobSequence;
 }
 
-void PmergeMe::buildMainChain()
+std::vector<size_t> PmergeMe::defineGroups(std::vector<int> pend, std::vector<size_t>& jacob)
 {
-    _mainChain.push_back(_pairs[0].second);
-    for(size_t i = 0; i < _pairs.size(); i++)
-        _mainChain.push_back(_pairs[i].first);
-    std::cout << "main chain:" << std::endl;
-    for(size_t i = 0; i < _mainChain.size(); i++)
-        std::cout << _mainChain[i] << " ";
-    std::cout << std::endl;
-}
-
-void PmergeMe::identifyPend()
-{
-    for(size_t i = 1; i < _pairs.size(); i++)
-        _pend.push_back(_pairs[i].second);
-    if(_hasStraggler)
-        _pend.push_back(_straggler);
-    std::cout << "Pend:" << std::endl;
-    for(size_t i = 0; i < _pend.size(); i++)
-        std::cout << _pend[i] << " ";
-    std::cout << std::endl;
-}
-
-void PmergeMe::generateJacobSthal()
-{
-    _jacobsthal.push_back(1);
-    _jacobsthal.push_back(3);
-    while(_jacobsthal.back() < _pend.size())
-    {
-        size_t i = _jacobsthal.size();
-       _jacobsthal.push_back(_jacobsthal[i - 1] + 2 * _jacobsthal[i - 2]);
-    }
-    std::cout << "Jacobsthal:" << std::endl;
-    for(size_t i = 0; i < _jacobsthal.size(); i++)
-        std::cout << _jacobsthal[i] << " ";
-    std::cout << std::endl;
-}
-
-void PmergeMe::defineGroups()
-{
-    if(_pend.empty())
-        return;
-    for(size_t j = 0; j < _jacobsthal.size(); j++)
+    std::vector<size_t> insertionOrder;
+    if(pend.empty())
+        return insertionOrder;
+    for(size_t j = 0; j < jacob.size(); j++)
     {
         if(j == 0)
-            _insertionOrder.push_back(0);
+            insertionOrder.push_back(0);
         else
         {
-            size_t end = std::min(_jacobsthal[j],_pend.size());
-            size_t start =  _jacobsthal[j - 1] + 1;
-            if(end == start && end >= _pend.size())
+            size_t end = std::min(jacob[j],pend.size());
+            size_t start =  jacob[j - 1] + 1;
+            if(end == start && end >= pend.size())
             {
-                _insertionOrder.push_back(end - 1);
+                insertionOrder.push_back(end - 1);
                 break;
             }
             else
             {
                 for(size_t i = end; i >= start; i--)
-                    _insertionOrder.push_back(i - 1);
-                if(end >= _pend.size())
+                    insertionOrder.push_back(i - 1);
+                if(end >= pend.size())
                     break;
-            }   
+            }
         }
     }
-    std::cout << "Insertion Order:" << std::endl;
-    for(size_t i = 0; i < _insertionOrder.size(); i++)
-        std::cout << _insertionOrder[i] << " ";
-    std::cout << std::endl;
+    return insertionOrder;
 }
 
-void PmergeMe::insertPend()
+void PmergeMe::insertPend(std::vector<int>& main, std::vector<int>& pend,
+                          std::vector<int>& main_v,
+                          std::vector<size_t>& insertionOrder, bool hasStraggler)
 {
-    for(size_t i = 0; i < _insertionOrder.size();i++)
+    for(size_t i = 0; i < insertionOrder.size(); i++)
     {
-        size_t idx = _insertionOrder[i];
-        if((idx == _pend.size() - 1 ) && _hasStraggler)
+        size_t idx = insertionOrder[i];
+        if(hasStraggler && idx == pend.size() - 1)
         {
-            std::vector<int>::iterator pos = std::lower_bound(_mainChain.begin(),_mainChain.end(),_pend[idx]);
-            _mainChain.insert(pos,_pend[idx]);
-            break;
+            std::vector<int>::iterator lo = main.begin();
+            std::vector<int>::iterator hi = main.end();
+            while(lo < hi) { _compCount++; std::vector<int>::iterator mid = lo + (hi - lo) / 2; if(*mid < pend[idx]) lo = mid + 1; else hi = mid; }
+            main.insert(lo, pend[idx]);
+            continue;
         }
-        int pairedWinner = _pairs[idx + 1].first;
-        std::cout << "Insertion index: " << _insertionOrder[i] << std::endl;
-        std::cout << "Paired Winner: " << pairedWinner << std::endl;
-        std::vector<int>::iterator bound = std::lower_bound(_mainChain.begin(),_mainChain.end(),pairedWinner);
-        std::vector<int>::iterator pos = std::lower_bound(_mainChain.begin(),bound,_pend[idx]);
-        _mainChain.insert(pos,_pend[idx]);
+        int pairedWinner = main_v[idx];
+        std::vector<int>::iterator bound = std::find(main.begin(), main.end(), pairedWinner);
+        if(bound != main.end()) ++bound;
+        std::vector<int>::iterator lo = main.begin();
+        std::vector<int>::iterator hi = bound;
+        while(lo < hi) { _compCount++; std::vector<int>::iterator mid = lo + (hi - lo) / 2; if(*mid < pend[idx]) lo = mid + 1; else hi = mid; }
+        main.insert(lo, pend[idx]);
     }
-    std::cout << "main chain:" << std::endl;
-    for(size_t i = 0; i < _mainChain.size(); i++)
-       std::cout << _mainChain[i] << " ";
-    std::cout << std::endl;
+}
+
+void PmergeMe::buildWinners()
+{
+    for(size_t i = 0; i < _pairs.size() ; i++)
+        _winners.push_back(_pairs[i].first);
+}
+
+std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int>& arr)
+{
+    std::vector<int> main_v;
+    std::vector<int> pend_v;
+    std::vector<int> new_main;
+    std::vector<int> new_pend;
+    
+    if(arr.empty())
+        return std::vector<int>();
+    if(arr.size() == 1)
+        return arr;
+    if(arr.size() == 2)
+    {
+        _compCount++;
+        if(arr[0] > arr[1])
+            std::swap(arr[0],arr[1]);
+        return arr;
+    }
+    bool isodd = (arr.size() % 2 == 1);
+    std::vector<int>::iterator it = arr.begin();
+    while(it != arr.end())
+    {
+        if((it + 1) == arr.end())
+            break;
+        _compCount++;
+        if(*it > *(it + 1))
+        {
+            main_v.push_back(*it);
+            pend_v.push_back(*(it + 1));
+        }
+        else
+        {
+            main_v.push_back(*(it + 1));
+            pend_v.push_back(*(it));
+        }
+        it += 2;
+    }
+    if(isodd)
+        pend_v.push_back(arr.back());
+    new_main = fordJohnsonLoop(main_v);
+    new_pend.resize(new_main.size());
+    for(size_t i = 0; i < new_main.size(); i++)
+    {
+        for(size_t j = 0; j < main_v.size(); j++)
+        {
+            if(main_v[j] == new_main[i])
+            {
+                new_pend[i] = pend_v[j];
+                break;
+            }
+        }
+    }
+    if(isodd)
+        new_pend.push_back(pend_v.back());
+    std::vector<size_t> jacob = generateJacobSthal(new_pend);
+    std::vector<size_t> insertionOrder = defineGroups(new_pend, jacob);
+    std::vector<int> sorted_winners_snapshot = new_main;
+    insertPend(new_main, new_pend, sorted_winners_snapshot, insertionOrder, isodd);
+    return new_main;
+}
+
+std::vector<std::pair<int,int> > PmergeMe::mergePairs(std::vector<int> arr)
+{
+    std::vector<std::pair<int,int> > sortedPairs;
+    
+    for(size_t i = 0; i < arr.size(); i++)
+    {
+        for(size_t j = 0; j < _pairs.size(); j++)
+        {
+            if(_pairs[j].first == arr[i])
+            {
+                sortedPairs.push_back(_pairs[j]);
+                break;
+            }
+        }
+    }
+    return sortedPairs;
 }
 
 void PmergeMe::sort()
 {
+    if(_arr.size() <= 1)
+        return;
     buildPairs();
-    mergePairs(_pairs);
-    std::cout << "Pairs after merge sort:" << std::endl;
+    buildWinners();
+    std::vector<int> sortedWinners = fordJohnsonLoop(_winners);
+    // rebuild _pairs in sorted winner order
+    std::vector<std::pair<int,int> > sortedPairs;
+    for(size_t i = 0; i < sortedWinners.size(); i++)
+    {
+        for(size_t j = 0; j < _pairs.size(); j++)
+        {
+            if(_pairs[j].first == sortedWinners[i])
+            {
+                sortedPairs.push_back(_pairs[j]);
+                break;
+            }
+        }
+    }
+    _pairs = sortedPairs;
+    // build main chain: winners only
+    std::vector<int> mainChain;
     for(size_t i = 0; i < _pairs.size(); i++)
-        std::cout << _pairs[i].first << " " << _pairs[i].second << std::endl;
-    buildMainChain();
-    identifyPend();
-    generateJacobSthal();
-    defineGroups();
-    insertPend();
+        mainChain.push_back(_pairs[i].first);
+    // build top-level pend: all losers + straggler
+    // pend[i] pairs with winners[i] = _pairs[i].first
+    std::vector<int> pend;
+    std::vector<int> pairedWinners;
+    for(size_t i = 0; i < _pairs.size(); i++)
+    {
+        pend.push_back(_pairs[i].second);
+        pairedWinners.push_back(_pairs[i].first);
+    }
+    if(_hasStraggler)
+        pend.push_back(_straggler);
+    // insert pend into mainChain using Jacobsthal order
+    std::vector<size_t> jacob = generateJacobSthal(pend);
+    std::vector<size_t> insertionOrder = defineGroups(pend, jacob);
+    insertPend(mainChain, pend, pairedWinners, insertionOrder, _hasStraggler);
+    _arr = mainChain;
+    std::cout << "Comparisons: " << _compCount << std::endl;
 }

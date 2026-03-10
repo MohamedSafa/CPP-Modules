@@ -21,6 +21,7 @@ int main(int argc,char *argv[])
         test.parse_and_validate(argc,argv);
         test.display_arr("Before:");
         test.sort();
+        test.display_arr("After:");
     }
     catch(const std::exception& e)
     {
