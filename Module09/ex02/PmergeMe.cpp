@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/10 01:58:55 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/12 00:58:43 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,58 +131,90 @@ std::vector<size_t> PmergeMe::generateJacobSthal(std::vector<int> pend)
     return jacobSequence;
 }
 
+// Build insertion order exactly like CEO's edit():
+// jacob contains 1-indexed pend positions (e.g. [3,5,11,21]).
+// For each jacob number, count down from it until hitting an already-used position.
+// Any remaining positions (beyond last jacob group) are appended descending.
+// Returns 1-indexed pend positions in insertion order (same format as CEO's jacob after edit).
 std::vector<size_t> PmergeMe::defineGroups(std::vector<int> pend, std::vector<size_t>& jacob)
 {
-    std::vector<size_t> insertionOrder;
+    std::vector<size_t> order;
+    std::vector<bool>   used(pend.size() + 1, false); // 1-indexed
+
     if(pend.empty())
-        return insertionOrder;
+        return order;
+
     for(size_t j = 0; j < jacob.size(); j++)
     {
-        if(j == 0)
-            insertionOrder.push_back(0);
-        else
+        size_t x = jacob[j];
+        while(x > 1)
         {
-            size_t end = std::min(jacob[j],pend.size());
-            size_t start =  jacob[j - 1] + 1;
-            if(end == start && end >= pend.size())
+            if(!used[x] && x <= pend.size())
             {
-                insertionOrder.push_back(end - 1);
-                break;
+                order.push_back(x);   // 1-indexed position
+                used[x] = true;
             }
             else
-            {
-                for(size_t i = end; i >= start; i--)
-                    insertionOrder.push_back(i - 1);
-                if(end >= pend.size())
-                    break;
-            }
+                break;
+            x--;
         }
     }
-    return insertionOrder;
+    // remaining positions not covered by jacob groups, descending
+    for(size_t x = pend.size(); x > 1; x--)
+    {
+        if(!used[x])
+            order.push_back(x);
+    }
+    return order;
 }
 
 void PmergeMe::insertPend(std::vector<int>& main, std::vector<int>& pend,
                           std::vector<int>& main_v,
                           std::vector<size_t>& insertionOrder, bool hasStraggler)
 {
+    // b1 = pend[0] is guaranteed <= a1 (smallest winner), insert free at front
+    main.insert(main.begin(), pend[0]);
+
+    // insertionOrder contains 1-indexed pend positions (skips position 1 = b1)
+    // main_v[pos-1] is the paired winner for pend[pos-1]
+    // straggler is pend.back() and has no paired winner
+    // high grows per jacobsthal group exactly as CEO's replace() does:
+    //   high=3 for first group, then high=2*high+1 when entering a new group
+    //   (new group detected when current 1-indexed pos > previous pos in order)
+    int high = 3;
     for(size_t i = 0; i < insertionOrder.size(); i++)
     {
-        size_t idx = insertionOrder[i];
-        if(hasStraggler && idx == pend.size() - 1)
+        size_t pos = insertionOrder[i];   // 1-indexed
+        size_t idx = pos - 1;             // 0-indexed into pend and main_v
+        int    val = pend[idx];
+
+        // update high when entering a new jacobsthal group (pos jumped up)
+        if(i > 0 && pos > insertionOrder[i - 1])
+            high = 2 * high + 1;
+
+        // winner-bound: pend[idx] <= its paired winner main_v[idx]
+        std::vector<int>::iterator winnerHi;
+        bool isStraggler = (hasStraggler && idx == pend.size() - 1);
+        if(isStraggler)
+            winnerHi = main.end();
+        else
         {
-            std::vector<int>::iterator lo = main.begin();
-            std::vector<int>::iterator hi = main.end();
-            while(lo < hi) { _compCount++; std::vector<int>::iterator mid = lo + (hi - lo) / 2; if(*mid < pend[idx]) lo = mid + 1; else hi = mid; }
-            main.insert(lo, pend[idx]);
-            continue;
+            int pairedWinner = main_v[idx];
+            winnerHi = std::find(main.begin(), main.end(), pairedWinner);
+            if(winnerHi != main.end()) ++winnerHi;
         }
-        int pairedWinner = main_v[idx];
-        std::vector<int>::iterator bound = std::find(main.begin(), main.end(), pairedWinner);
-        if(bound != main.end()) ++bound;
+
+        // jacobsthal group bound: search at most `high` elements from start
+        std::vector<int>::iterator groupHi = (static_cast<size_t>(high) < main.size())
+            ? main.begin() + high
+            : main.end();
+
+        // use the tighter of the two bounds
+        std::vector<int>::iterator hi = (winnerHi < groupHi) ? winnerHi : groupHi;
+
         std::vector<int>::iterator lo = main.begin();
-        std::vector<int>::iterator hi = bound;
-        while(lo < hi) { _compCount++; std::vector<int>::iterator mid = lo + (hi - lo) / 2; if(*mid < pend[idx]) lo = mid + 1; else hi = mid; }
-        main.insert(lo, pend[idx]);
+        while(lo < hi) { _compCount++; std::vector<int>::iterator mid = lo + (hi - lo) / 2; if(*mid < val) lo = mid + 1; else hi = mid; }
+        main.insert(lo, val);
     }
 }
 
@@ -205,10 +237,11 @@ std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int>& arr)
         return arr;
     if(arr.size() == 2)
     {
+        std::vector<int> result = arr;
         _compCount++;
-        if(arr[0] > arr[1])
-            std::swap(arr[0],arr[1]);
-        return arr;
+        if(result[0] > result[1])
+            std::swap(result[0], result[1]);
+        return result;
     }
     bool isodd = (arr.size() % 2 == 1);
     std::vector<int>::iterator it = arr.begin();
@@ -232,6 +265,7 @@ std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int>& arr)
     if(isodd)
         pend_v.push_back(arr.back());
     new_main = fordJohnsonLoop(main_v);
+    new_pend.clear();
     new_pend.resize(new_main.size());
     for(size_t i = 0; i < new_main.size(); i++)
     {
@@ -249,6 +283,7 @@ std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int>& arr)
     std::vector<size_t> jacob = generateJacobSthal(new_pend);
     std::vector<size_t> insertionOrder = defineGroups(new_pend, jacob);
     std::vector<int> sorted_winners_snapshot = new_main;
+
     insertPend(new_main, new_pend, sorted_winners_snapshot, insertionOrder, isodd);
     return new_main;
 }
@@ -275,42 +310,6 @@ void PmergeMe::sort()
 {
     if(_arr.size() <= 1)
         return;
-    buildPairs();
-    buildWinners();
-    std::vector<int> sortedWinners = fordJohnsonLoop(_winners);
-    // rebuild _pairs in sorted winner order
-    std::vector<std::pair<int,int> > sortedPairs;
-    for(size_t i = 0; i < sortedWinners.size(); i++)
-    {
-        for(size_t j = 0; j < _pairs.size(); j++)
-        {
-            if(_pairs[j].first == sortedWinners[i])
-            {
-                sortedPairs.push_back(_pairs[j]);
-                break;
-            }
-        }
-    }
-    _pairs = sortedPairs;
-    // build main chain: winners only
-    std::vector<int> mainChain;
-    for(size_t i = 0; i < _pairs.size(); i++)
-        mainChain.push_back(_pairs[i].first);
-    // build top-level pend: all losers + straggler
-    // pend[i] pairs with winners[i] = _pairs[i].first
-    std::vector<int> pend;
-    std::vector<int> pairedWinners;
-    for(size_t i = 0; i < _pairs.size(); i++)
-    {
-        pend.push_back(_pairs[i].second);
-        pairedWinners.push_back(_pairs[i].first);
-    }
-    if(_hasStraggler)
-        pend.push_back(_straggler);
-    // insert pend into mainChain using Jacobsthal order
-    std::vector<size_t> jacob = generateJacobSthal(pend);
-    std::vector<size_t> insertionOrder = defineGroups(pend, jacob);
-    insertPend(mainChain, pend, pairedWinners, insertionOrder, _hasStraggler);
-    _arr = mainChain;
+    _arr = fordJohnsonLoop(_arr);
     std::cout << "Comparisons: " << _compCount << std::endl;
 }
