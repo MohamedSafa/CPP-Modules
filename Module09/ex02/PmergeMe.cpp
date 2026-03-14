@@ -6,18 +6,18 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/12 00:58:43 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/15 01:00:34 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "PmergeMe.hpp"
-#include <cstdlib> // for strtol
-#include <climits> // INT_MAX
+#include <cstdlib>
+#include <climits>
 #include <iostream>
-#include <algorithm> // for std::lower_bound
+#include <algorithm>
 
 PmergeMe::PmergeMe()
-    :_straggler(0),_hasStraggler(false),_compCount(0)
+    : _compCount(0)
 {}
 
 PmergeMe::~PmergeMe()
@@ -25,9 +25,7 @@ PmergeMe::~PmergeMe()
 
 PmergeMe::PmergeMe(const PmergeMe& src)
     : _arr(src._arr),
-      _pairs(src._pairs),
-      _straggler(src._straggler),
-      _hasStraggler(src._hasStraggler)
+      _compCount(src._compCount)
 {}
 
 PmergeMe& PmergeMe::operator=(const PmergeMe& rhs)
@@ -35,9 +33,7 @@ PmergeMe& PmergeMe::operator=(const PmergeMe& rhs)
     if(this != &rhs)
     {
         this->_arr = rhs._arr;
-        this->_pairs = rhs._pairs;
-        this->_straggler = rhs._straggler;
-        this->_hasStraggler = rhs._hasStraggler;
+        this->_compCount = rhs._compCount;
     }
     return *this;
 }
@@ -75,49 +71,6 @@ void PmergeMe::display_arr(std::string const& label) const
     std::cout << std::endl;
 }
 
-void PmergeMe::buildPairs()
-{
-    for(size_t i = 0; i < this->_arr.size() - 1; i += 2)
-    {
-        int winner = _arr[i];
-        int looser = _arr[i + 1];
-        _compCount++;
-        if(winner > looser)
-            _pairs.push_back(std::make_pair(winner,looser));
-        else
-            _pairs.push_back(std::make_pair(looser,winner));
-    }
-    if(_arr.size() % 2 != 0)
-    {
-        _straggler = _arr.back();
-        _hasStraggler = true;
-    }
-}
-
-// void PmergeMe::mergePairs(std::vector<std::pair<int,int> >& vector)
-// {
-//     if(vector.size() <= 1)
-//         return;
-//     size_t mid = vector.size() / 2;
-//     std::vector<std::pair<int, int> > left(vector.begin(), vector.begin() + mid);
-//     std::vector<std::pair<int, int> > right(vector.begin() + mid, vector.end());
-//     mergePairs(left);
-//     mergePairs(right);
-//     size_t i = 0, j = 0, k = 0;
-//     while(i < left.size() && j < right.size())
-//     {
-//         if(left[i].first <= right[j].first)
-//             vector[k++] = left[i++];
-//         else
-//             vector[k++] = right[j++];
-//     }
-//     while(i < left.size())
-//         vector[k++] = left[i++];
-//     while(j < right.size())
-//         vector[k++] = right[j++];
-// }
-
-
 std::vector<size_t> PmergeMe::generateJacobSthal(std::vector<int> pend)
 {
     std::vector<size_t> jacobSequence;
@@ -126,44 +79,26 @@ std::vector<size_t> PmergeMe::generateJacobSthal(std::vector<int> pend)
     while(jacobSequence.back() < pend.size())
     {
         size_t i = jacobSequence.size();
-       jacobSequence.push_back(jacobSequence[i - 1] + 2 * jacobSequence[i - 2]);
+        jacobSequence.push_back(jacobSequence[i - 1] + 2 * jacobSequence[i - 2]);
     }
     return jacobSequence;
 }
 
-// Build insertion order exactly like CEO's edit():
-// jacob contains 1-indexed pend positions (e.g. [3,5,11,21]).
-// For each jacob number, count down from it until hitting an already-used position.
-// Any remaining positions (beyond last jacob group) are appended descending.
-// Returns 1-indexed pend positions in insertion order (same format as CEO's jacob after edit).
 std::vector<size_t> PmergeMe::defineGroups(std::vector<int> pend, std::vector<size_t>& jacob)
 {
     std::vector<size_t> order;
-    std::vector<bool>   used(pend.size() + 1, false); // 1-indexed
 
-    if(pend.empty())
-        return order;
+    // jacob[0]=1 is skipped: pend[0] is always inserted for free before this loop
+    for(size_t j = 1; j < jacob.size(); j++)
+    {
+        size_t group_start = jacob[j - 1] + 1;
+        size_t group_end   = std::min(jacob[j], pend.size());
 
-    for(size_t j = 0; j < jacob.size(); j++)
-    {
-        size_t x = jacob[j];
-        while(x > 1)
-        {
-            if(!used[x] && x <= pend.size())
-            {
-                order.push_back(x);   // 1-indexed position
-                used[x] = true;
-            }
-            else
-                break;
-            x--;
-        }
-    }
-    // remaining positions not covered by jacob groups, descending
-    for(size_t x = pend.size(); x > 1; x--)
-    {
-        if(!used[x])
+        for(size_t x = group_end; x >= group_start; x--)
             order.push_back(x);
+
+        if(group_end >= pend.size())
+            break;
     }
     return order;
 }
@@ -172,27 +107,18 @@ void PmergeMe::insertPend(std::vector<int>& main, std::vector<int>& pend,
                           std::vector<int>& main_v,
                           std::vector<size_t>& insertionOrder, bool hasStraggler)
 {
-    // b1 = pend[0] is guaranteed <= a1 (smallest winner), insert free at front
     main.insert(main.begin(), pend[0]);
 
-    // insertionOrder contains 1-indexed pend positions (skips position 1 = b1)
-    // main_v[pos-1] is the paired winner for pend[pos-1]
-    // straggler is pend.back() and has no paired winner
-    // high grows per jacobsthal group exactly as CEO's replace() does:
-    //   high=3 for first group, then high=2*high+1 when entering a new group
-    //   (new group detected when current 1-indexed pos > previous pos in order)
     int high = 3;
     for(size_t i = 0; i < insertionOrder.size(); i++)
     {
-        size_t pos = insertionOrder[i];   // 1-indexed
-        size_t idx = pos - 1;             // 0-indexed into pend and main_v
+        size_t pos = insertionOrder[i];
+        size_t idx = pos - 1;
         int    val = pend[idx];
 
-        // update high when entering a new jacobsthal group (pos jumped up)
         if(i > 0 && pos > insertionOrder[i - 1])
             high = 2 * high + 1;
 
-        // winner-bound: pend[idx] <= its paired winner main_v[idx]
         std::vector<int>::iterator winnerHi;
         bool isStraggler = (hasStraggler && idx == pend.size() - 1);
         if(isStraggler)
@@ -201,27 +127,35 @@ void PmergeMe::insertPend(std::vector<int>& main, std::vector<int>& pend,
         {
             int pairedWinner = main_v[idx];
             winnerHi = std::find(main.begin(), main.end(), pairedWinner);
-            if(winnerHi != main.end()) ++winnerHi;
+            if(winnerHi != main.end()) 
+                ++winnerHi;
         }
 
-        // jacobsthal group bound: search at most `high` elements from start
-        std::vector<int>::iterator groupHi = (static_cast<size_t>(high) < main.size())
-            ? main.begin() + high
-            : main.end();
+        std::vector<int>::iterator groupHi;
+        if(static_cast<size_t>(high) < main.size())
+            groupHi = main.begin() + high;
+        else
+            groupHi = main.end();
 
-        // use the tighter of the two bounds
-        std::vector<int>::iterator hi = (winnerHi < groupHi) ? winnerHi : groupHi;
+        //choose the smallest high to reduce the comparisons
+        std::vector<int>::iterator hi;
+        if(winnerHi < groupHi)
+            hi = winnerHi;
+        else
+            hi = groupHi;
 
         std::vector<int>::iterator lo = main.begin();
-        while(lo < hi) { _compCount++; std::vector<int>::iterator mid = lo + (hi - lo) / 2; if(*mid < val) lo = mid + 1; else hi = mid; }
+        while(lo < hi)
+        {
+            _compCount++;
+            std::vector<int>::iterator mid = lo + (hi - lo) / 2;
+            if(*mid < val) 
+                lo = mid + 1;
+            else 
+                hi = mid;
+        }
         main.insert(lo, val);
     }
-}
-
-void PmergeMe::buildWinners()
-{
-    for(size_t i = 0; i < _pairs.size() ; i++)
-        _winners.push_back(_pairs[i].first);
 }
 
 std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int>& arr)
@@ -230,9 +164,7 @@ std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int>& arr)
     std::vector<int> pend_v;
     std::vector<int> new_main;
     std::vector<int> new_pend;
-    
-    if(arr.empty())
-        return std::vector<int>();
+
     if(arr.size() == 1)
         return arr;
     if(arr.size() == 2)
@@ -265,15 +197,16 @@ std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int>& arr)
     if(isodd)
         pend_v.push_back(arr.back());
     new_main = fordJohnsonLoop(main_v);
-    new_pend.clear();
     new_pend.resize(new_main.size());
+    std::vector<bool> used(main_v.size(), false);
     for(size_t i = 0; i < new_main.size(); i++)
     {
         for(size_t j = 0; j < main_v.size(); j++)
         {
-            if(main_v[j] == new_main[i])
+            if(!used[j] && main_v[j] == new_main[i])
             {
                 new_pend[i] = pend_v[j];
+                used[j] = true;
                 break;
             }
         }
@@ -288,24 +221,6 @@ std::vector<int> PmergeMe::fordJohnsonLoop(std::vector<int>& arr)
     return new_main;
 }
 
-std::vector<std::pair<int,int> > PmergeMe::mergePairs(std::vector<int> arr)
-{
-    std::vector<std::pair<int,int> > sortedPairs;
-    
-    for(size_t i = 0; i < arr.size(); i++)
-    {
-        for(size_t j = 0; j < _pairs.size(); j++)
-        {
-            if(_pairs[j].first == arr[i])
-            {
-                sortedPairs.push_back(_pairs[j]);
-                break;
-            }
-        }
-    }
-    return sortedPairs;
-}
-
 void PmergeMe::sort()
 {
     if(_arr.size() <= 1)
@@ -313,3 +228,9 @@ void PmergeMe::sort()
     _arr = fordJohnsonLoop(_arr);
     std::cout << "Comparisons: " << _compCount << std::endl;
 }
+
+
+//131 87 56 167 391 142 23 22 537 705 242 305 552 456 303 162 235 13 511 792 518
+   // 65 comparisons
+//1613 1430 1790 4814 8214 7541 298 1126 451 5842 2693 5236 4587 4048 4116 3904 1199 3766 6225 7269 8709
+ // 64 comparisons

@@ -13,32 +13,18 @@
 #ifndef PMERGEME_HPP
 #define PMERGEME_HPP
 
-#include <vector> //container type
-#include <string> // std::string
-#include <exception> // exception class
-#include <utility> // std::pair
+#include <vector>
+#include <string>
+#include <exception>
 
 class PmergeMe
 {
     private:
         std::vector<int> _arr;
-        std::vector<std::pair<int,int> > _pairs;
-        std::vector<int> _mainChain;
-        std::vector<int> _pend;
-        std::vector<size_t> _jacobsthal;
-        std::vector<size_t> _insertionOrder;
-        std::vector<int> _winners;
-        int _straggler;
-        bool _hasStraggler;
         size_t _compCount;
-        void buildPairs();
-        void buildWinners();
         std::vector<int> fordJohnsonLoop(std::vector<int>& arr);
-        std::vector<std::pair<int,int> > mergePairs(std::vector<int> arr);
-        void buildMainChain(std::vector<int> arr);
-        void identifyPend();
         std::vector<size_t> generateJacobSthal(std::vector<int> pend);
-        std::vector<size_t> defineGroups(std::vector<int> pend,std::vector<size_t>& jacob);
+        std::vector<size_t> defineGroups(std::vector<int> pend, std::vector<size_t>& jacob);
         void insertPend(std::vector<int>& main, std::vector<int>& pend, std::vector<int>& main_v, std::vector<size_t>& insertionOrder, bool hasStraggler);
     public:
         PmergeMe();
