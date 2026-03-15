@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:11 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/10 01:58:51 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/15 03:48:43 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,18 +14,34 @@
 #define PMERGEME_HPP
 
 #include <vector>
+#include <deque>
 #include <string>
 #include <exception>
 
 class PmergeMe
 {
     private:
-        std::vector<int> _arr;
+        std::vector<int> _vec;
+        std::deque<int> _deq;
         size_t _compCount;
-        std::vector<int> fordJohnsonLoop(std::vector<int>& arr);
-        std::vector<size_t> generateJacobSthal(std::vector<int> pend);
-        std::vector<size_t> defineGroups(std::vector<int> pend, std::vector<size_t>& jacob);
-        void insertPend(std::vector<int>& main, std::vector<int>& pend, std::vector<int>& main_v, std::vector<size_t>& insertionOrder, bool hasStraggler);
+        std::vector<int> fordJohnsonVec(std::vector<int>& arr);
+        void insertPendVec
+        (
+            std::vector<int>& main,
+            std::vector<int>& pend,
+            std::vector<int>& main_v,
+            std::vector<size_t>& insertionOrder,
+            bool hasStraggler
+        );
+        std::deque<int> fordJohnsonDeq(std::deque<int>& arr);
+        void insertPendDeq
+        (
+            std::deque<int>& main,
+            std::deque<int>& pend,
+            std::deque<int>& main_v,
+            std::vector<size_t>& insertionOrder,
+            bool hasStraggler
+        );
     public:
         PmergeMe();
         ~PmergeMe();
