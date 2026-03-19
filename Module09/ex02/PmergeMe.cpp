@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/15 04:02:41 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/15 23:24:46 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,11 +14,12 @@
 #include <cstdlib>
 #include <climits>
 #include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <algorithm>
 
 PmergeMe::PmergeMe()
-    : _compCount(0)
+    : _compCount(0), _vecEnd(0), _deqEnd(0)
 {}
 
 PmergeMe::~PmergeMe()
@@ -357,28 +358,37 @@ std::deque<int> PmergeMe::fordJohnsonDeq(std::deque<int>& arr)
 void PmergeMe::sort()
 {
     if(_vec.size() <= 1)
+    {
+        _vecEnd = clock();
+        _deqEnd = clock();
         return;
+    }
 
-    size_t n = _vec.size();
-
-    clock_t vecStart = clock();
     _vec = fordJohnsonVec(_vec);
-    clock_t vecEnd = clock();
     size_t vecComp = _compCount;
-    double vecTime = (double)(vecEnd - vecStart) / CLOCKS_PER_SEC * 1e6;
-
+    _vecEnd = clock();
     _compCount = 0;
-
-    clock_t deqStart = clock();
     _deq = fordJohnsonDeq(_deq);
-    clock_t deqEnd = clock();
     size_t deqComp = _compCount;
-    double deqTime = (double)(deqEnd - deqStart) / CLOCKS_PER_SEC * 1e6;
+    _deqEnd = clock();
 
     std::cout << "Vec comparisons: " << vecComp << std::endl;
     std::cout << "Deq comparisons: " << deqComp << std::endl;
-    std::cout << "Time to process a range of " << n << " elements with std::vector : " << vecTime << " us" << std::endl;
-    std::cout << "Time to process a range of " << n << " elements with std::deque  : " << deqTime << " us" << std::endl;
+}
+
+size_t PmergeMe::size() const
+{
+    return _vec.size();
+}
+
+clock_t PmergeMe::getVecEnd() const
+{
+    return _vecEnd;
+}
+
+clock_t PmergeMe::getDeqEnd() const
+{
+    return _deqEnd;
 }
 
 

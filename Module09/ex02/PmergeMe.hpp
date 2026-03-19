@@ -17,6 +17,7 @@
 #include <deque>
 #include <string>
 #include <exception>
+#include <ctime>
 
 class PmergeMe
 {
@@ -24,6 +25,8 @@ class PmergeMe
         std::vector<int> _vec;
         std::deque<int> _deq;
         size_t _compCount;
+        clock_t _vecEnd;
+        clock_t _deqEnd;
         std::vector<int> fordJohnsonVec(std::vector<int>& arr);
         void insertPendVec
         (
@@ -55,6 +58,9 @@ class PmergeMe
                 const char* what() const throw();
         };
         void sort();
+        size_t size() const;
+        clock_t getVecEnd() const;
+        clock_t getDeqEnd() const;
 };
 
 #endif
