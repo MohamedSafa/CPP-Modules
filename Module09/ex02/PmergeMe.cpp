@@ -6,7 +6,7 @@
 /*   By: msafa <msafa@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/28 20:42:13 by msafa             #+#    #+#             */
-/*   Updated: 2026/03/15 23:24:46 by msafa            ###   ########.fr       */
+/*   Updated: 2026/03/24 18:54:52 by msafa            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <climits>
 #include <ctime>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <algorithm>
@@ -119,7 +120,7 @@ void PmergeMe::insertPendVec
 {
     main.insert(main.begin(), pend[0]);
 
-    int high = 3;
+    int high = 3 ;
     for(size_t i = 0; i < insertionOrder.size(); i++)
     {
         size_t pos = insertionOrder[i];
@@ -137,7 +138,7 @@ void PmergeMe::insertPendVec
         {
             int pairedWinner = main_v[idx];
             winnerHi = std::find(main.begin(), main.end(), pairedWinner);
-            if(winnerHi != main.end()) 
+            if(winnerHi != main.end())
                 ++winnerHi;
         }
 
@@ -167,6 +168,7 @@ void PmergeMe::insertPendVec
         main.insert(lo, val);
     }
 }
+
 
 std::vector<int> PmergeMe::fordJohnsonVec(std::vector<int>& arr)
 {
@@ -244,7 +246,7 @@ void PmergeMe::insertPendDeq
 {
     main.push_front(pend[0]);
 
-    int high = 3;
+    int high = (int)pow(2.0, 2) - 1;
     for(size_t i = 0; i < insertionOrder.size(); i++)
     {
         size_t pos = insertionOrder[i];
@@ -332,15 +334,13 @@ std::deque<int> PmergeMe::fordJohnsonDeq(std::deque<int>& arr)
         pend_v.push_back(arr.back());
     new_main = fordJohnsonDeq(main_v);
     new_pend.resize(new_main.size());
-    std::vector<bool> used(main_v.size(), false);
     for(size_t i = 0; i < new_main.size(); i++)
     {
         for(size_t j = 0; j < main_v.size(); j++)
         {
-            if(!used[j] && main_v[j] == new_main[i])
+            if(main_v[j] == new_main[i])
             {
                 new_pend[i] = pend_v[j];
-                used[j] = true;
                 break;
             }
         }
